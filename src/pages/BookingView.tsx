@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { format, isBefore } from 'date-fns';
-import { Clock, Calendar as CalendarIcon, ArrowLeft } from 'lucide-react';
+import { Clock, Calendar as CalendarIcon } from 'lucide-react';
 import { useTelegram } from '../context/TelegramContext';
 import { TimeSlot, BookingDetails, BookingStep } from '../types';
-import { generateTimeSlots, createInvoice, isSlotInPast } from '../services/bookingService';
+import { fetchAvailableSlots } from '../services/calendarService';
 import Spinner from '../components/ui/Spinner';
 import Calendar from '../components/Calendar';
 import BackButton from '../components/BackButton';
@@ -46,20 +46,20 @@ const BookingView: React.FC = () => {
   const loadTimeSlots = async () => {
     setIsLoading(true);
     try {
-      const slots = generateTimeSlots(selectedDate);
-      const validSlots = slots.filter(slot => !isSlotInPast(slot));
+      const slots = await fetchAvailableSlots(selectedDate);
+      const validSlots = slots.filter(slot => !isBefore(slot.endTime, new Date()));
       setTimeSlots(validSlots);
     } catch (error) {
-      console.error('Error loading time slots:', error);
-      telegram?.showAlert('Failed to load time slots. Please try again.');
+      console.error('Ошибка загрузки слотов:', error);
+      telegram?.showAlert('Не удалось загрузить доступные слоты. Попробуйте ещё раз.');
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleSlotSelect = (slot: TimeSlot) => {
-    if (!slot.isAvailable || isSlotInPast(slot)) {
-      telegram?.showAlert('This time slot is no longer available.');
+    if (!slot.isAvailable) {
+      telegram?.showAlert('Этот слот уже недоступен.');
       return;
     }
     setSelectedSlot(slot);
@@ -75,7 +75,7 @@ const BookingView: React.FC = () => {
 
   const handleDateSelect = (date: Date) => {
     if (isBefore(date, new Date())) {
-      telegram?.showAlert('Please select a future date.');
+      telegram?.showAlert('Пожалуйста, выберите будущую дату.');
       return;
     }
     setSelectedDate(date);
@@ -104,13 +104,11 @@ const BookingView: React.FC = () => {
     if (!selectedSlot) return;
 
     try {
-      const invoice = await createInvoice(selectedSlot);
+      // Здесь должна быть интеграция с оплатой
       setCurrentStep('payment');
-      // In production, this would use telegram.showInvoice()
-      console.log('Show invoice:', invoice);
     } catch (error) {
-      console.error('Error creating invoice:', error);
-      telegram?.showAlert('Failed to create payment. Please try again.');
+      console.error('Ошибка создания оплаты:', error);
+      telegram?.showAlert('Не удалось создать оплату. Попробуйте ещё раз.');
     }
   };
 
@@ -122,14 +120,14 @@ const BookingView: React.FC = () => {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen p-4">
         <Spinner />
-        <p className="mt-4 text-gray-600">Loading available slots...</p>
+        <p className="mt-4 text-gray-600">Загрузка доступных слотов...</p>
       </div>
     );
   }
 
   return (
     <div className="p-4 max-w-md mx-auto">
-      <h1 className="text-2xl font-bold mb-6">Book a Consultation</h1>
+      <h1 className="text-2xl font-bold mb-6">Запись на консультацию</h1>
       
       {currentStep === 'slots' && (
         <div className="bg-white rounded-lg shadow-md p-4">
@@ -139,7 +137,7 @@ const BookingView: React.FC = () => {
           >
             <CalendarIcon className="w-5 h-5" />
             <h2 className="text-lg font-semibold">
-              {format(selectedDate, 'EEEE, MMMM d, yyyy')}
+              {format(selectedDate, 'EEEE, d MMMM yyyy', {locale: undefined})}
             </h2>
           </button>
           
@@ -149,7 +147,7 @@ const BookingView: React.FC = () => {
             </div>
           )}
           
-          <p className="text-gray-600 mb-4">1-hour consultation - $50</p>
+          <p className="text-gray-600 mb-4">1 час консультации — 50 $</p>
           
           <div className="space-y-2">
             {timeSlots.map((slot) => (
@@ -174,7 +172,7 @@ const BookingView: React.FC = () => {
                 <span className={`text-sm font-medium ${
                   slot.isAvailable ? 'text-blue-600' : 'text-gray-400'
                 }`}>
-                  {slot.isAvailable ? 'Available' : 'Booked'}
+                  {slot.isAvailable ? 'Доступно' : 'Занято'}
                 </span>
               </button>
             ))}
@@ -185,17 +183,17 @@ const BookingView: React.FC = () => {
       {currentStep === 'details' && selectedSlot && (
         <div className="bg-white rounded-lg shadow-md p-4">
           <BackButton onClick={handleBack} show={true} />
-          <h2 className="text-lg font-semibold mb-4">Booking Details</h2>
+          <h2 className="text-lg font-semibold mb-4">Детали бронирования</h2>
           <div className="mb-4 p-3 bg-blue-50 rounded-lg">
             <p className="text-sm text-blue-800">
-              {format(selectedSlot.startTime, 'EEEE, MMMM d')} at {formatTime(selectedSlot.startTime)}
+              {format(selectedSlot.startTime, 'EEEE, d MMMM', {locale: undefined})} в {formatTime(selectedSlot.startTime)}
             </p>
           </div>
           
           <form onSubmit={handleSubmitDetails} className="space-y-4">
             <div>
               <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
-                Your Name
+                Ваше имя
               </label>
               <input
                 type="text"
@@ -204,13 +202,13 @@ const BookingView: React.FC = () => {
                 value={bookingDetails.name}
                 onChange={(e) => setBookingDetails(prev => ({ ...prev, name: e.target.value }))}
                 className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                placeholder="Enter your name"
+                placeholder="Введите ваше имя"
               />
             </div>
             
             <div>
               <label htmlFor="topic" className="block text-sm font-medium text-gray-700 mb-1">
-                Consultation Topic
+                Тема консультации
               </label>
               <textarea
                 id="topic"
@@ -218,7 +216,7 @@ const BookingView: React.FC = () => {
                 value={bookingDetails.topic}
                 onChange={(e) => setBookingDetails(prev => ({ ...prev, topic: e.target.value }))}
                 className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 h-32"
-                placeholder="Describe what you'd like to discuss"
+                placeholder="Опишите, что хотите обсудить"
               />
             </div>
             
@@ -226,7 +224,7 @@ const BookingView: React.FC = () => {
               type="submit"
               className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-blue-700 transition-colors"
             >
-              Proceed to Payment
+              Перейти к оплате
             </button>
           </form>
         </div>
@@ -235,28 +233,28 @@ const BookingView: React.FC = () => {
       {currentStep === 'payment' && selectedSlot && (
         <div className="bg-white rounded-lg shadow-md p-4">
           <BackButton onClick={handleBack} show={true} />
-          <h2 className="text-lg font-semibold mb-4">Payment</h2>
+          <h2 className="text-lg font-semibold mb-4">Оплата</h2>
           <div className="space-y-4">
             <div className="p-4 bg-gray-50 rounded-lg">
-              <h3 className="font-medium mb-2">Booking Summary</h3>
+              <h3 className="font-medium mb-2">Детали бронирования</h3>
               <p className="text-sm text-gray-600">
-                {format(selectedSlot.startTime, 'EEEE, MMMM d')} at {formatTime(selectedSlot.startTime)}
+                {format(selectedSlot.startTime, 'EEEE, d MMMM', {locale: undefined})} в {formatTime(selectedSlot.startTime)}
               </p>
               <p className="text-sm text-gray-600 mt-1">
-                1-hour consultation with {bookingDetails.name}
+                1 час консультации, клиент: {bookingDetails.name}
               </p>
               <p className="text-sm text-gray-600 mt-1">
-                Topic: {bookingDetails.topic}
+                Тема: {bookingDetails.topic}
               </p>
             </div>
             
             <div className="flex justify-between items-center py-2 border-t border-b border-gray-200">
-              <span className="font-medium">Total</span>
+              <span className="font-medium">Итого</span>
               <span className="text-xl font-bold">${bookingDetails.price}</span>
             </div>
             
             <p className="text-sm text-gray-500 text-center">
-              Payment will be processed through Telegram
+              Оплата будет обработана через Telegram
             </p>
           </div>
         </div>

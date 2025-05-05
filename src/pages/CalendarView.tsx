@@ -6,7 +6,7 @@ import SlotList from '../components/SlotList';
 import EventDetails from '../components/EventDetails';
 import PaymentConfirmation from '../components/PaymentConfirmation';
 import BookingConfirmation from '../components/BookingConfirmation';
-import { fetchMockEvents } from '../services/calendarService';
+import { fetchAvailableSlots } from '../services/calendarService';
 import { isBefore } from 'date-fns';
 import BackButton from '../components/BackButton';
 
@@ -41,7 +41,7 @@ const CalendarView: React.FC = () => {
   useEffect(() => {
     if (selectedDate && currentStep === 'calendar') {
       if (isBefore(selectedDate, new Date())) {
-        telegram?.showAlert('Please select a future date.');
+        telegram?.showAlert('Пожалуйста, выберите будущую дату.');
         return;
       }
       loadSlots(selectedDate);
@@ -52,13 +52,12 @@ const CalendarView: React.FC = () => {
   const loadSlots = async (date: Date) => {
     setIsLoading(true);
     try {
-      // In a real app, we would fetch from Google Calendar API
-      const slots = await fetchMockEvents(date);
+      const slots = await fetchAvailableSlots(date);
       const validSlots = slots.filter(slot => !isBefore(slot.endTime, new Date()));
       setAvailableSlots(validSlots);
     } catch (error) {
-      console.error('Error loading slots:', error);
-      telegram?.showAlert('Failed to load available time slots. Please try again.');
+      console.error('Ошибка загрузки слотов:', error);
+      telegram?.showAlert('Не удалось загрузить доступные слоты. Попробуйте ещё раз.');
     } finally {
       setIsLoading(false);
     }
@@ -90,8 +89,8 @@ const CalendarView: React.FC = () => {
     <div className="space-y-4">
       {currentStep === 'calendar' && (
         <div className="space-y-6">
-          <h1 className="text-2xl font-bold text-center">Book an Event</h1>
-          <p className="text-center text-gray-600">Select a date to see available slots</p>
+          <h1 className="text-2xl font-bold text-center">Запись на встречу</h1>
+          <p className="text-center text-gray-600">Выберите дату, чтобы увидеть доступные слоты</p>
           <Calendar />
         </div>
       )}
@@ -102,7 +101,7 @@ const CalendarView: React.FC = () => {
           isLoading={isLoading}
           onSelectSlot={(slot) => {
             if (isBefore(slot.endTime, new Date())) {
-              telegram?.showAlert('This time slot is no longer available.');
+              telegram?.showAlert('Этот слот уже недоступен.');
               return;
             }
             setSelectedSlot(slot);

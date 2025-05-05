@@ -1,58 +1,39 @@
-import { EventSlot } from '../types';
+import { TimeSlot } from '../types';
+import { loadConfig } from '../config';
 
-// In a real app, this would connect to Google Calendar API
-export const fetchMockEvents = async (date: Date): Promise<EventSlot[]> => {
-  // Simulate API call
-  await new Promise(resolve => setTimeout(resolve, 1000));
-  
-  const year = date.getFullYear();
-  const month = date.getMonth();
-  const day = date.getDate();
-  
-  // Generate 0-4 random events for the selected date
-  const numEvents = Math.floor(Math.random() * 5);
-  const events: EventSlot[] = [];
-  
-  for (let i = 0; i < numEvents; i++) {
-    const startHour = 9 + Math.floor(Math.random() * 8); // 9 AM to 5 PM
-    const startTime = new Date(year, month, day, startHour, 0, 0);
-    const endTime = new Date(year, month, day, startHour + 1, 0, 0);
-    
-    events.push({
-      id: `event-${date.toISOString()}-${i}`,
-      title: sampleEventTitles[Math.floor(Math.random() * sampleEventTitles.length)],
-      description: "Join us for this exciting event. Learn new skills, meet interesting people, and have fun!",
-      startTime,
-      endTime,
-      price: 10 + Math.floor(Math.random() * 40), // $10 to $50
-      currency: "USD",
-      availableSpots: 1 + Math.floor(Math.random() * 10), // 1 to 10 spots
-      totalSpots: 10,
-      location: Math.random() > 0.3 ? sampleLocations[Math.floor(Math.random() * sampleLocations.length)] : undefined
+export async function fetchGoogleCalendarEvents(date: Date) {
+  const { GOOGLE_CALENDAR_API_KEY, GOOGLE_CALENDAR_ID } = await loadConfig();
+  const timeMin = new Date(date.setHours(0,0,0,0)).toISOString();
+  const timeMax = new Date(date.setHours(23,59,59,999)).toISOString();
+
+  const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(GOOGLE_CALENDAR_ID)}/events?key=${GOOGLE_CALENDAR_API_KEY}&timeMin=${timeMin}&timeMax=${timeMax}&singleEvents=true&orderBy=startTime`;
+
+  const response = await fetch(url);
+  if (!response.ok) throw new Error('Ошибка загрузки событий Google Calendar');
+  const data = await response.json();
+  return data.items; // массив событий
+}
+
+export async function fetchAvailableSlots(date: Date): Promise<TimeSlot[]> {
+  const events = await fetchGoogleCalendarEvents(new Date(date));
+  const slots: TimeSlot[] = [];
+  for (let hour = 9; hour < 18; hour++) {
+    const slotStart = new Date(date);
+    slotStart.setHours(hour, 0, 0, 0);
+    const slotEnd = new Date(date);
+    slotEnd.setHours(hour + 1, 0, 0, 0);
+    const isBusy = events.some((event: any) => {
+      const eventStart = new Date(event.start.dateTime || event.start.date);
+      const eventEnd = new Date(event.end.dateTime || event.end.date);
+      return (slotStart < eventEnd && slotEnd > eventStart);
+    });
+    slots.push({
+      id: `${date.toISOString()}-${hour}`,
+      startTime: slotStart,
+      endTime: slotEnd,
+      isAvailable: !isBusy,
+      price: 50
     });
   }
-  
-  return events.sort((a, b) => a.startTime.getTime() - b.startTime.getTime());
-};
-
-const sampleEventTitles = [
-  "Yoga Session",
-  "Business Workshop",
-  "Photography Class",
-  "Cooking Masterclass",
-  "Language Exchange",
-  "Web Development Basics",
-  "Meditation Group",
-  "Art Exhibition",
-  "Dance Workshop",
-  "Financial Planning Seminar"
-];
-
-const sampleLocations = [
-  "Online (Zoom)",
-  "Community Center",
-  "Downtown Studio",
-  "Innovation Hub",
-  "Central Park",
-  "Business Center"
-];
+  return slots;
+}
