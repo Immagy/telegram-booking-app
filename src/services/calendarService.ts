@@ -3,7 +3,17 @@ const SERVER_URL = 'https://telegram-booking-app.onrender.com';
 
 import { TimeSlot } from '../types';
 import { loadConfig } from '../config';
-import open from 'open';
+
+// Replaced the Node.js-specific 'open' module with a browser-compatible alternative
+function openAuthUrl(authUrl: string) {
+  if (typeof window !== 'undefined') {
+    // Open the URL in a new browser tab in a browser environment
+    window.open(authUrl, '_blank');
+  } else {
+    // Log a message for environments where 'window' is not available
+    console.log('Please open the following URL in your browser:', authUrl);
+  }
+}
 
 async function getRefreshToken() {
   const clientId = '973855272619-2l1i91lipmjbp2d6i2ns22l6n5c9mss6.apps.googleusercontent.com';
@@ -23,7 +33,7 @@ async function getRefreshToken() {
   console.log(authUrl);
 
   // Открыть ссылку в браузере автоматически
-  await open(authUrl);
+  openAuthUrl(authUrl);
 
   console.log('После авторизации введите полученный код:');
   const code = await new Promise((resolve) => {
