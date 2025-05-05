@@ -165,3 +165,46 @@ export async function fetchAvailableSlots(date: Date): Promise<TimeSlot[]> {
   console.log('[fetchAvailableSlots] Сформированные слоты:', slots);
   return slots;
 }
+
+export async function initiateGoogleAuth() {
+  const { clientId, redirectUri } = await loadConfig();
+
+  const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
+    `client_id=${clientId}&` +
+    `redirect_uri=${redirectUri}&` +
+    `response_type=code&` +
+    `scope=https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/calendar.events offline_access&` +
+    `access_type=offline&` +
+    `prompt=consent`;
+
+  // Открыть URL авторизации в новом окне
+  window.location.href = authUrl;
+}
+
+export async function handleGoogleAuthCallback(code: string) {
+  const { clientId, clientSecret, redirectUri } = await loadConfig();
+
+  const response = await fetch('https://oauth2.googleapis.com/token', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
+    body: new URLSearchParams({
+      client_id: clientId,
+      client_secret: clientSecret,
+      code,
+      redirect_uri: redirectUri,
+      grant_type: 'authorization_code',
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to exchange authorization code for tokens');
+  }
+
+  const data = await response.json();
+  console.log('Access Token:', data.access_token);
+  console.log('Refresh Token:', data.refresh_token);
+
+  return data;
+}
