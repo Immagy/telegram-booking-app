@@ -6,6 +6,7 @@ import { TimeSlot, BookingDetails, BookingStep } from '../types';
 import { generateTimeSlots, createInvoice, isSlotInPast } from '../services/bookingService';
 import Spinner from '../components/ui/Spinner';
 import Calendar from '../components/Calendar';
+import BackButton from '../components/BackButton';
 
 const BookingView: React.FC = () => {
   const { telegram } = useTelegram();
@@ -183,6 +184,7 @@ const BookingView: React.FC = () => {
 
       {currentStep === 'details' && selectedSlot && (
         <div className="bg-white rounded-lg shadow-md p-4">
+          <BackButton onClick={handleBack} show={true} />
           <h2 className="text-lg font-semibold mb-4">Booking Details</h2>
           <div className="mb-4 p-3 bg-blue-50 rounded-lg">
             <p className="text-sm text-blue-800">
@@ -232,6 +234,7 @@ const BookingView: React.FC = () => {
 
       {currentStep === 'payment' && selectedSlot && (
         <div className="bg-white rounded-lg shadow-md p-4">
+          <BackButton onClick={handleBack} show={true} />
           <h2 className="text-lg font-semibold mb-4">Payment</h2>
           <div className="space-y-4">
             <div className="p-4 bg-gray-50 rounded-lg">

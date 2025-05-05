@@ -8,6 +8,7 @@ import PaymentConfirmation from '../components/PaymentConfirmation';
 import BookingConfirmation from '../components/BookingConfirmation';
 import { fetchMockEvents } from '../services/calendarService';
 import { isBefore } from 'date-fns';
+import BackButton from '../components/BackButton';
 
 const CalendarView: React.FC = () => {
   const { 
@@ -112,17 +113,23 @@ const CalendarView: React.FC = () => {
       )}
 
       {currentStep === 'details' && selectedSlot && (
-        <EventDetails 
-          slot={selectedSlot}
-          onProceedToPayment={() => setCurrentStep('payment')}
-        />
+        <>
+          <BackButton onClick={handleBack} show={true} />
+          <EventDetails 
+            slot={selectedSlot}
+            onProceedToPayment={() => setCurrentStep('payment')}
+          />
+        </>
       )}
 
       {currentStep === 'payment' && selectedSlot && (
-        <PaymentConfirmation 
-          slot={selectedSlot}
-          onPaymentComplete={() => setCurrentStep('confirmation')}
-        />
+        <>
+          <BackButton onClick={handleBack} show={true} />
+          <PaymentConfirmation 
+            slot={selectedSlot}
+            onPaymentComplete={() => setCurrentStep('confirmation')}
+          />
+        </>
       )}
 
       {currentStep === 'confirmation' && selectedSlot && (
