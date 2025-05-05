@@ -21,6 +21,7 @@ const BookingView: React.FC = () => {
     topic: '',
     price: 50
   });
+  const [debugInfo, setDebugInfo] = useState<any>({});
 
   useEffect(() => {
     loadTimeSlots();
@@ -49,8 +50,17 @@ const BookingView: React.FC = () => {
       const slots = await fetchAvailableSlots(selectedDate);
       const validSlots = slots.filter(slot => !isBefore(slot.endTime, new Date()));
       setTimeSlots(validSlots);
+      setDebugInfo({
+        selectedDate: selectedDate,
+        allSlots: slots,
+        validSlots: validSlots
+      });
     } catch (error) {
       console.error('Ошибка загрузки слотов:', error);
+      setDebugInfo({
+        selectedDate: selectedDate,
+        error: error instanceof Error ? error.message : error
+      });
       telegram?.showAlert('Не удалось загрузить доступные слоты. Попробуйте ещё раз.');
     } finally {
       setIsLoading(false);
@@ -264,6 +274,12 @@ const BookingView: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Блок отладки */}
+      <div className="mt-8 p-4 bg-gray-100 rounded text-xs text-gray-800">
+        <b>Отладка:</b>
+        <pre style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>{JSON.stringify(debugInfo, null, 2)}</pre>
+      </div>
     </div>
   );
 };
