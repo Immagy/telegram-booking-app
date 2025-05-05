@@ -1,23 +1,114 @@
+// Добавлена ссылка на сервер проекта
+const SERVER_URL = 'https://telegram-booking-app.onrender.com';
+
 import { TimeSlot } from '../types';
 import { loadConfig } from '../config';
+import open from 'open';
+
+async function getRefreshToken() {
+  const clientId = '973855272619-2l1i91lipmjbp2d6i2ns22l6n5c9mss6.apps.googleusercontent.com';
+  const clientSecret = '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';
+  const redirectUri = 'https://telegram-booking-app.onrender.com'; // Укажите ваш redirect URI
+
+  // Сформируйте URL для авторизации
+  const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
+    `client_id=${clientId}&` +
+    `redirect_uri=${redirectUri}&` +
+    `response_type=code&` +
+    `scope=openid email profile https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/calendar.events offline_access&` +
+    `access_type=offline&` +
+    `prompt=consent`;
+
+  console.log('Откройте следующую ссылку в браузере для авторизации:');
+  console.log(authUrl);
+
+  // Открыть ссылку в браузере автоматически
+  await open(authUrl);
+
+  console.log('После авторизации введите полученный код:');
+  const code = await new Promise((resolve) => {
+    const readline = require('readline').createInterface({
+      input: process.stdin,
+      output: process.stdout,
+    });
+    readline.question('Введите код: ', (input) => {
+      readline.close();
+      resolve(input);
+    });
+  });
+
+  // Обменять authorization code на токены
+  const response = await fetch('https://oauth2.googleapis.com/token', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
+    body: new URLSearchParams({
+      client_id: clientId,
+      client_secret: clientSecret,
+      code: code,
+      redirect_uri: redirectUri,
+      grant_type: 'authorization_code',
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error('Не удалось получить refresh token');
+  }
+
+  const data = await response.json();
+  console.log('Ваш refresh token:', data.refresh_token);
+  return data.refresh_token;
+}
+
+async function getAccessToken() {
+  const clientId = '973855272619-2l1i91lipmjbp2d6i2ns22l6n5c9mss6.apps.googleusercontent.com';
+  const clientSecret = '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';
+  const refreshToken = 'YOUR_REFRESH_TOKEN'; // Замените на ваш refresh token
+
+  const response = await fetch('https://oauth2.googleapis.com/token', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
+    body: new URLSearchParams({
+      client_id: clientId,
+      client_secret: clientSecret,
+      refresh_token: refreshToken,
+      grant_type: 'refresh_token',
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to refresh access token');
+  }
+
+  const data = await response.json();
+  return data.access_token;
+}
 
 export async function fetchGoogleCalendarEvents(date: Date) {
   console.log('[fetchGoogleCalendarEvents] Входная дата:', date);
-  const { GOOGLE_CALENDAR_API_KEY, GOOGLE_CALENDAR_ID } = await loadConfig();
-  if (!GOOGLE_CALENDAR_API_KEY || !GOOGLE_CALENDAR_ID) {
-    throw new Error('Отсутствует API-ключ или ID календаря. Проверьте конфигурацию.');
+  const { GOOGLE_CALENDAR_ID } = await loadConfig();
+  if (!GOOGLE_CALENDAR_ID) {
+    throw new Error('Отсутствует ID календаря. Проверьте конфигурацию.');
   }
 
-  console.log('[fetchGoogleCalendarEvents] Ключ:', GOOGLE_CALENDAR_API_KEY, 'ID:', GOOGLE_CALENDAR_ID);
+  console.log('[fetchGoogleCalendarEvents] ID:', GOOGLE_CALENDAR_ID);
   const timeMin = new Date(date.setHours(0, 0, 0, 0)).toISOString();
   const timeMax = new Date(date.setHours(23, 59, 59, 999)).toISOString();
   console.log('[fetchGoogleCalendarEvents] timeMin:', timeMin, 'timeMax:', timeMax);
 
-  const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(GOOGLE_CALENDAR_ID)}/events?key=${GOOGLE_CALENDAR_API_KEY}&timeMin=${timeMin}&timeMax=${timeMax}&singleEvents=true&orderBy=startTime`;
+  const accessToken = await getAccessToken();
+  const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(GOOGLE_CALENDAR_ID)}/events?timeMin=${timeMin}&timeMax=${timeMax}&singleEvents=true&orderBy=startTime`;
   console.log('[fetchGoogleCalendarEvents] URL:', url);
 
   try {
-    const response = await fetch(url);
+    const response = await fetch(url, {
+      headers: {
+        Authorization: `Bearer ${accessToken}`
+      }
+    });
     console.log('[fetchGoogleCalendarEvents] response.ok:', response.ok);
 
     if (!response.ok) {
