@@ -3,6 +3,7 @@ const SERVER_URL = 'https://telegram-booking-app.onrender.com';
 
 import { TimeSlot } from '../types';
 import { loadConfig } from '../config';
+import readline from 'readline';
 
 // Replaced the Node.js-specific 'open' module with a browser-compatible alternative
 function openAuthUrl(authUrl: string) {
@@ -37,12 +38,12 @@ async function getRefreshToken() {
 
   console.log('После авторизации введите полученный код:');
   const code = await new Promise((resolve) => {
-    const readline = require('readline').createInterface({
+    const rl = readline.createInterface({
       input: process.stdin,
       output: process.stdout,
     });
-    readline.question('Введите код: ', (input) => {
-      readline.close();
+    rl.question('Введите код: ', (input) => {
+      rl.close();
       resolve(input);
     });
   });
