@@ -74,7 +74,7 @@ async function getRefreshToken() {
 async function getAccessToken() {
   const clientId = '973855272619-2l1i91lipmjbp2d6i2ns22l6n5c9mss6.apps.googleusercontent.com';
   const clientSecret = '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';
-  const refreshToken = 'YOUR_REFRESH_TOKEN'; // Замените на ваш refresh token
+  const refreshToken = await getRefreshToken(); // Динамическое получение refresh token через API
 
   const response = await fetch('https://oauth2.googleapis.com/token', {
     method: 'POST',
