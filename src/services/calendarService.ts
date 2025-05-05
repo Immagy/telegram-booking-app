@@ -38,14 +38,12 @@ async function getRefreshToken() {
 
   console.log('После авторизации введите полученный код:');
   const code = await new Promise((resolve) => {
-    const rl = readline.createInterface({
-      input: process.stdin,
-      output: process.stdout,
-    });
-    rl.question('Введите код: ', (input) => {
-      rl.close();
-      resolve(input);
-    });
+    if (typeof window !== 'undefined') {
+      const input = window.prompt('Введите код:');
+      resolve(input || '');
+    } else {
+      throw new Error('process.stdin недоступен в браузерной среде');
+    }
   });
 
   // Обменять authorization code на токены
