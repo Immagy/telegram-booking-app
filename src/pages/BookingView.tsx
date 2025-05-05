@@ -113,7 +113,7 @@ const BookingView: React.FC = () => {
   };
 
   const formatTime = (date: Date): string => {
-    return format(date, 'HH:mm');
+    return date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
   };
 
   if (isLoading) {
@@ -137,7 +137,12 @@ const BookingView: React.FC = () => {
           >
             <CalendarIcon className="w-5 h-5" />
             <h2 className="text-lg font-semibold">
-              {format(selectedDate, 'EEEE, d MMMM yyyy', {locale: undefined})}
+              {selectedDate.toLocaleDateString('ru-RU', {
+                weekday: 'long',
+                day: 'numeric',
+                month: 'long',
+                year: 'numeric'
+              }).replace(/^./, str => str.toUpperCase())}
             </h2>
           </button>
           
@@ -147,7 +152,7 @@ const BookingView: React.FC = () => {
             </div>
           )}
           
-          <p className="text-gray-600 mb-4">1 час консультации — 50 $</p>
+          <p className="text-gray-600 mb-4">1 час консультации — 50 ₽</p>
           
           <div className="space-y-2">
             {timeSlots.map((slot) => (

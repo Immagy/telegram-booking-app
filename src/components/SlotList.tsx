@@ -1,49 +1,51 @@
-import React from 'react';
+import * as React from 'react';
 import { Clock, MapPin } from 'lucide-react';
-import { EventSlot } from '../types';
+import { TimeSlot } from '../types';
 import Spinner from './ui/Spinner';
+import { JSX } from 'react';
 
 interface SlotListProps {
-  slots: EventSlot[];
+  slots: TimeSlot[];
   isLoading: boolean;
-  onSelectSlot: (slot: EventSlot) => void;
+  onSelectSlot: (slot: TimeSlot) => void;
   date: Date | null;
 }
 
-const SlotList: React.FC<SlotListProps> = ({ slots, isLoading, onSelectSlot, date }) => {
+const SlotList: React.FC<SlotListProps> = ({ slots, isLoading, onSelectSlot, date }: SlotListProps) => {
   const formatTime = (date: Date): string => {
-    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    return date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
   };
 
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center py-12">
         <Spinner />
-        <p className="mt-4 text-gray-600">Loading available slots...</p>
+        <p className="mt-4 text-gray-600">Загрузка доступных слотов...</p>
       </div>
     );
   }
 
   if (!date) {
-    return <div>Please select a date first</div>;
+    return <div>Пожалуйста, выберите дату</div>;
   }
 
-  const formattedDate = date.toLocaleDateString('en-US', {
+  const formattedDate = date.toLocaleDateString('ru-RU', {
     weekday: 'long',
     month: 'long',
-    day: 'numeric'
+    day: 'numeric',
+    year: 'numeric'
   });
 
   return (
     <div className="space-y-4">
       <div>
-        <h2 className="text-xl font-bold">Available Slots</h2>
-        <p className="text-gray-600">{formattedDate}</p>
+        <h2 className="text-xl font-bold">Доступные слоты</h2>
+        <p className="text-gray-600">{formattedDate.charAt(0).toUpperCase() + formattedDate.slice(1)}</p>
       </div>
       
       {slots.length === 0 ? (
         <div className="bg-gray-50 rounded-lg p-6 text-center">
-          <p className="text-gray-500">No available slots for this date</p>
+          <p className="text-gray-500">Нет доступных слотов на эту дату</p>
         </div>
       ) : (
         <div className="space-y-3">
@@ -54,9 +56,9 @@ const SlotList: React.FC<SlotListProps> = ({ slots, isLoading, onSelectSlot, dat
               className="w-full bg-white border border-gray-200 rounded-lg p-4 flex flex-col hover:shadow-md transition-shadow duration-200"
             >
               <div className="flex justify-between items-start">
-                <h3 className="font-medium text-left">{slot.title}</h3>
+                <h3 className="font-medium text-left">{slot.title || 'Консультация'}</h3>
                 <span className="text-blue-600 font-medium">
-                  {slot.price} {slot.currency}
+                  {slot.price} ₽
                 </span>
               </div>
               
@@ -76,11 +78,11 @@ const SlotList: React.FC<SlotListProps> = ({ slots, isLoading, onSelectSlot, dat
               
               <div className="mt-2 text-sm text-left">
                 <span className={`px-2 py-1 rounded-full ${
-                  slot.availableSpots > 5 
+                  slot.isAvailable 
                     ? 'bg-green-100 text-green-800' 
                     : 'bg-orange-100 text-orange-800'
                 }`}>
-                  {slot.availableSpots} spot{slot.availableSpots !== 1 ? 's' : ''} left
+                  {slot.isAvailable ? 'Доступно' : 'Занято'}
                 </span>
               </div>
             </button>
