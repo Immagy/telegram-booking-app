@@ -26,7 +26,7 @@ async function getRefreshToken() {
     `client_id=${clientId}&` +
     `redirect_uri=${redirectUri}&` +
     `response_type=code&` +
-    `scope=openid email profile https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/calendar.events offline_access&` +
+    `scope=openid https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/calendar.events&` +
     `access_type=offline&` +
     `prompt=consent`;
 
@@ -173,7 +173,7 @@ export async function initiateGoogleAuth() {
     `client_id=${clientId}&` +
     `redirect_uri=${redirectUri}&` +
     `response_type=code&` +
-    `scope=https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/calendar.events offline_access&` +
+    `scope=openid https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/calendar.events&` +
     `access_type=offline&` +
     `prompt=consent`;
 
